@@ -1,0 +1,183 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+<meta charset="UTF-8" />
+<title>Dungeon maker</title>
+<link href="resources/main.css" rel="stylesheet" type="text/css" />
+<link href="resources/dungeon_parts.css" rel="stylesheet" type="text/css" />
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<script type="text/javascript">
+var maxrow = 18;
+var maxcol = 24; // 14x10 e' la dimensione dell'area gioco per scratch
+
+function rand_between(min, max) {
+    // min and max inclusive
+    return Math.floor(Math.random() * (max-min+1)) + min;
+}
+
+
+$(document).ready(function () {
+    var j,k;
+    
+    var grid_width = 32 * maxcol + maxcol + 1; // remember the border width of the cells
+    
+    for (j=1; j<=maxrow; j++) {
+        var newrow = $("<div class=dng_row></div>");
+        newrow.css("width",grid_width);
+        $("#THE-MAP").append(newrow);
+        for (k=1;k<=maxcol;k++) {
+            var newcell = $("<div class='cell_rock dng_cell' id='C-" + k.toString() + "-R-" + j.toString() + "'></div>");
+            newrow.append(newcell);
+        }
+    }
+});
+
+function get_terrain_id (id) {
+    var classList = $(id).attr('class').split(/\s+/);
+    for (var i = 0; i < classList.length; i++) {
+        if (classList[i].substring(0,4) === 'cell') {
+            return classList[i];
+        }
+    }
+    return false;
+}
+
+function get_terrain_colrow(c, r) {
+    var id = "#C-" + c + "-R-" + r;
+    return get_terrain_id(id);
+} 
+
+function dig(c, r) {
+    var id = "#C-" + c + "-R-" + r;
+    //console.log(id);
+    var classList = $(id).attr('class').split(/\s+/);
+    $.each(classList, function(index, item) {
+        if (item.substring(0,4) === 'cell') {
+            $(id).removeClass(item);
+        }
+    });    
+    $(id).addClass('cell_floor');
+}
+
+function dig_room(cc, rr) {
+    var cols = rand_between(2,4);
+    var rows = rand_between(2,4);
+    var r = 0;
+    var c = 0;
+    console.log("Digging @ ", cc,rr, "room of ", cols,rows);
+    t = 0;
+    while (cc+cols > maxcol-2) {
+        console.log("Out of column bound");
+        cc = cc-1;
+        if ((t++) > 10) {
+            return false;
+        }
+    }
+    while (rr+rows > maxrow-2) {
+        console.log("Out of row bound");
+        rr = rr-1;
+        if ((t++) > 10) {
+            return false;
+        }
+    }
+    console.log("Digging @ ", cc,rr, "room of ", cols,rows);
+    while(r<rows) {
+        while(c<cols) {
+            dig(c+cc,r+rr);
+            c++;
+        }
+        r++;
+        c = 0;
+    }
+    return [cols, rows];
+}
+
+function random_dig() {
+    // randomly dig ignoring any logic except the presence of a room
+    var col = rand_between(2, maxcol-6);
+    var row = rand_between(2,maxrow-6);
+    if (get_terrain_colrow(col, row) == 'cell_rock') {
+        dig_room(col,row);
+    } else {
+        console.log("Can't dig @ ", col, row);
+    }
+}
+
+function areas_dig(rooms) {
+    //try to dig the indicated number of rooms distributing 
+    //around the available space
+    var col = 0;
+    var row = 0;
+    var horiz_areas = Math.ceil(rooms/2); // number of vertical and horizontal areas
+    var vert_areas = rooms - horiz_areas;
+    var hsize = Math.floor(maxcol / horiz_areas); // size of vertical and horizontal areas
+    var vsize = Math.floor(maxrow / vert_areas);
+    for(v=0; v<vert_areas; v++) {
+        for(h=0; h<horiz_areas; h++) {
+            col = rand_between(2, hsize) * (h+1);
+            row = rand_between(2, vsize) * (v+1);
+            dig_room (col, row);
+            rooms = rooms - 1;
+            if (rooms == 0) return;
+        }
+    }
+}
+
+var mole_rooms = 3; 
+
+function mole_dig_start() {
+    var col = rand_between(2, maxcol-6);
+    var row = rand_between(2,maxrow-6);
+    mole_dig_room(col, row);
+}
+
+function mole_dig_room(col, row) {
+    // simulates a mole digging the dungeon
+    if (mole_rooms == 0) return; // end recursion
+    
+    var room_size;
+    if (room_size = dig_room (col, row)) {
+        mole_rooms--;
+        // now exit the room from any number of directions
+        mole_dig_corridor (Math.floor(col + room_size[0]/2), Math.floor(row + room_size[1]/2));
+    }
+}
+
+function mole_dig_corridor(col, row) {
+    // dig a corridor in a random direction
+    var length = rand_between(2,5);
+    let directions = [-1, 1, 0, 0]; // then choose a random direction
+    var vert_dir = directions[rand_between(0,3)]; // there are 2 zeroes to give 50% chance of selection 
+    var horz_dir = 0;
+    if (vert_dir == 0) {
+        horz_dir = directions[rand_between(0,1)];
+    }
+    // now dig the corridor
+    while ((col > 1) && (col < maxcol-1) && (row > 1) && (row < maxrow-1) && (length > 0)) {
+        col += horz_dir;
+        row += vert_dir;
+        if (get_terrain_colrow(col, row) == 'cell_rock') {
+            dig(col, row);
+            length--;
+        }
+    }
+}
+
+
+</script>
+
+</head>
+
+    
+    
+<body>
+<input type=button onclick="areas_dig(5)" value="start">
+
+<div class='dungeon_map' id='THE-MAP'>
+
+</div>
+
+
+
+</body>
+</html>
