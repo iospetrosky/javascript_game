@@ -126,8 +126,8 @@ function areas_dig(rooms) {
 var mole_rooms = 3; 
 
 function mole_dig_start() {
-    var col = rand_between(2, maxcol-6);
-    var row = rand_between(2,maxrow-6);
+    var col = rand_between(2, Math.floor(maxcol/3));
+    var row = rand_between(2, Math.floor(maxrow/3));
     mole_dig_room(col, row);
 }
 
@@ -135,32 +135,46 @@ function mole_dig_room(col, row) {
     // simulates a mole digging the dungeon
     if (mole_rooms == 0) return; // end recursion
     
-    var room_size;
+    var room_size, vdir, end_of_corr;
     if (room_size = dig_room (col, row)) {
         mole_rooms--;
         // now exit the room from any number of directions
-        mole_dig_corridor (Math.floor(col + room_size[0]/2), Math.floor(row + room_size[1]/2));
+        end_of_corr = mole_dig_corridor (Math.floor(col + room_size[0]/2), Math.floor(row + room_size[1]/2), 99);
+        // should draw another corridor
+        if (rand_between(1,2) == 2) {
+            end_of_corr = mole_dig_corridor (Math.floor(col + room_size[0]/2), Math.floor(row + room_size[1]/2), end_of_corr.hdir);
+        }
     }
 }
 
-function mole_dig_corridor(col, row) {
+function mole_dig_corridor(col, row, vert_dir) {
     // dig a corridor in a random direction
     var length = rand_between(2,5);
-    let directions = [-1, 1, 0, 0]; // then choose a random direction
-    var vert_dir = directions[rand_between(0,3)]; // there are 2 zeroes to give 50% chance of selection 
+    var ret = new Object();
+    if (vert_dir == 99) {
+        vert_dir = rand_between(0,1);
+    } // else use the one provided
     var horz_dir = 0;
     if (vert_dir == 0) {
-        horz_dir = directions[rand_between(0,1)];
+        // it's not moving vertically so move horizontally
+        horz_dir = 1;
     }
     // now dig the corridor
+    ret.drawn = false;
     while ((col > 1) && (col < maxcol-1) && (row > 1) && (row < maxrow-1) && (length > 0)) {
         col += horz_dir;
         row += vert_dir;
         if (get_terrain_colrow(col, row) == 'cell_rock') {
             dig(col, row);
             length--;
+            ret.drawn = true;
         }
     }
+    ret.vdir = vert_dir;
+    ret.hdir = horz_dir;
+    ret.col = col;
+    ret.row = row;
+    return ret; 
 }
 
 
@@ -171,7 +185,7 @@ function mole_dig_corridor(col, row) {
     
     
 <body>
-<input type=button onclick="areas_dig(5)" value="start">
+<input type=button onclick="mole_dig_start()" value="start">
 
 <div class='dungeon_map' id='THE-MAP'>
 
