@@ -15,7 +15,6 @@ function rand_between(min, max) {
     return Math.floor(Math.random() * (max-min+1)) + min;
 }
 
-
 $(document).ready(function () {
     var j,k;
     
@@ -33,11 +32,16 @@ $(document).ready(function () {
 });
 
 function get_terrain_id (id) {
-    var classList = $(id).attr('class').split(/\s+/);
-    for (var i = 0; i < classList.length; i++) {
-        if (classList[i].substring(0,4) === 'cell') {
-            return classList[i];
+    var classList;
+    try { // just in case the id is not existent
+        $(id).attr('class').split(/\s+/);
+        for (var i = 0; i < classList.length; i++) {
+            if (classList[i].substring(0,4) === 'cell') {
+                return classList[i];
+            }
         }
+    } catch (error) {
+        return false;
     }
     return false;
 }
@@ -46,6 +50,62 @@ function get_terrain_colrow(c, r) {
     var id = "#C-" + c + "-R-" + r;
     return get_terrain_id(id);
 } 
+
+function make_cell_id(col, row) {
+    return "#C-" + col + "-R-" + row;
+}
+
+function are_all_the_same(t1, t2, t3, t4) {
+    if ((t1 == t2) && (t1 == t3) && (t1 == t4)) return true;
+    return false;
+}
+
+function is_corridor_colrow(c, r) {
+    let grid = [make_cell_id(c-1,r-1),make_cell_id(c,r-1),make_cell_id(c+1,r-1), // 0 1 2
+                make_cell_id(c-1,r),make_cell_id(c,r),make_cell_id(c+1,r), // 3 4 5
+                make_cell_id(c-1,r+1),make_cell_id(c,r+1),make_cell_id(c+1,r+1)]; // 6 7 8
+    
+    for (var i = 0; i < grid.length; i++) {
+        grid[i] = get_terrain_id(grid[i]);
+    }
+    if (grid[4] == 'cell_floor') { // center cell
+        /* if a square of 4 tiles in the matrix contain the 
+           same terrain of the central [4] then it's NOT a corridor */
+        if (are_all_the_same(grid[4], grid[0], grid[1], grid[3])) return false;
+        if (are_all_the_same(grid[4], grid[1], grid[2], grid[5])) return false;
+        if (are_all_the_same(grid[4], grid[3], grid[6], grid[7])) return false;
+        if (are_all_the_same(grid[4], grid[5], grid[7], grid[8])) return false;
+        // else
+        return true;
+    } 
+    //else 
+    return false;
+}
+
+function is_room_colrow(c, r) {
+    // checks if the cell is part of a room
+    let grid = [make_cell_id(c-1,r-1),make_cell_id(c,r-1),make_cell_id(c+1,r-1), // 0 1 2
+                make_cell_id(c-1,r),make_cell_id(c,r),make_cell_id(c+1,r), // 3 4 5
+                make_cell_id(c-1,r+1),make_cell_id(c,r+1),make_cell_id(c+1,r+1)]; // 6 7 8
+    
+    for (var i = 0; i < grid.length; i++) {
+        grid[i] = get_terrain_id(grid[i]);
+    }
+    if (grid[4] == 'cell_floor') { // center cell
+        /* if a square of 4 tiles in the matrix contain the 
+           same terrain of the central [4] then it IS a room */
+        if (are_all_the_same(grid[4], grid[0], grid[1], grid[3])) return true;
+        if (are_all_the_same(grid[4], grid[1], grid[2], grid[5])) return true;
+        if (are_all_the_same(grid[4], grid[3], grid[6], grid[7])) return true;
+        if (are_all_the_same(grid[4], grid[5], grid[7], grid[8])) return true;
+        // else
+        return false;
+    } 
+    //else 
+    return false;
+    
+    
+}
 
 function dig(c, r) {
     var id = "#C-" + c + "-R-" + r;
@@ -59,9 +119,10 @@ function dig(c, r) {
     $(id).addClass('cell_floor');
 }
 
-function dig_room(cc, rr) {
-    var cols = rand_between(2,4);
-    var rows = rand_between(2,4);
+function dig_room(cc, rr, variance) {
+    // variance is relative to the average size
+    var cols = rand_between(2,4) + Math.floor(variance/2);
+    var rows = rand_between(2,4) + Math.floor(variance/2);
     var r = 0;
     var c = 0;
     console.log("Digging @ ", cc,rr, "room of ", cols,rows);
@@ -97,7 +158,7 @@ function random_dig() {
     var col = rand_between(2, maxcol-6);
     var row = rand_between(2,maxrow-6);
     if (get_terrain_colrow(col, row) == 'cell_rock') {
-        dig_room(col,row);
+        dig_room(col,row,0);
     } else {
         console.log("Can't dig @ ", col, row);
     }
@@ -108,6 +169,8 @@ function areas_dig(rooms) {
     //around the available space
     var col = 0;
     var row = 0;
+    var avg_size = 16;
+    var ret;
     var horiz_areas = Math.ceil(rooms/2); // number of vertical and horizontal areas
     var vert_areas = rooms - horiz_areas;
     var hsize = Math.floor(maxcol / horiz_areas); // size of vertical and horizontal areas
@@ -116,67 +179,15 @@ function areas_dig(rooms) {
         for(h=0; h<horiz_areas; h++) {
             col = rand_between(2, hsize) * (h+1);
             row = rand_between(2, vsize) * (v+1);
-            dig_room (col, row);
+            ret = dig_room (col, row, 16 - avg_size);
+            avg_size = Math.floor((avg_size + ret[0]*ret[1]) / 2)
             rooms = rooms - 1;
             if (rooms == 0) return;
         }
     }
 }
 
-var mole_rooms = 3; 
-
-function mole_dig_start() {
-    var col = rand_between(2, Math.floor(maxcol/3));
-    var row = rand_between(2, Math.floor(maxrow/3));
-    mole_dig_room(col, row);
-}
-
-function mole_dig_room(col, row) {
-    // simulates a mole digging the dungeon
-    if (mole_rooms == 0) return; // end recursion
-    
-    var room_size, vdir, end_of_corr;
-    if (room_size = dig_room (col, row)) {
-        mole_rooms--;
-        // now exit the room from any number of directions
-        end_of_corr = mole_dig_corridor (Math.floor(col + room_size[0]/2), Math.floor(row + room_size[1]/2), 99);
-        // should draw another corridor
-        if (rand_between(1,2) == 2) {
-            end_of_corr = mole_dig_corridor (Math.floor(col + room_size[0]/2), Math.floor(row + room_size[1]/2), end_of_corr.hdir);
-        }
-    }
-}
-
-function mole_dig_corridor(col, row, vert_dir) {
-    // dig a corridor in a random direction
-    var length = rand_between(2,5);
-    var ret = new Object();
-    if (vert_dir == 99) {
-        vert_dir = rand_between(0,1);
-    } // else use the one provided
-    var horz_dir = 0;
-    if (vert_dir == 0) {
-        // it's not moving vertically so move horizontally
-        horz_dir = 1;
-    }
-    // now dig the corridor
-    ret.drawn = false;
-    while ((col > 1) && (col < maxcol-1) && (row > 1) && (row < maxrow-1) && (length > 0)) {
-        col += horz_dir;
-        row += vert_dir;
-        if (get_terrain_colrow(col, row) == 'cell_rock') {
-            dig(col, row);
-            length--;
-            ret.drawn = true;
-        }
-    }
-    ret.vdir = vert_dir;
-    ret.hdir = horz_dir;
-    ret.col = col;
-    ret.row = row;
-    return ret; 
-}
-
+// mole algorithm saved in old versions, see gitHub
 
 </script>
 
@@ -185,7 +196,7 @@ function mole_dig_corridor(col, row, vert_dir) {
     
     
 <body>
-<input type=button onclick="mole_dig_start()" value="start">
+<input type=button onclick="areas_dig(7)" value="start">
 
 <div class='dungeon_map' id='THE-MAP'>
 
