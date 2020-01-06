@@ -125,8 +125,19 @@ function dig_room(cc, rr, variance) {
     var rows = rand_between(2,4) + Math.floor(variance/2);
     var r = 0;
     var c = 0;
+    if (cols < 2) {cols = 2}
+    if (rows < 2) {rows = 2}
+    // try not to overlap
+    var pos_ok = false;
+    while (!pos_ok) {
+        if (is_room_colrow(cc, rr)) { cc++; continue; }
+        if (is_room_colrow(cc+cols, rr+rows)) { cc++; continue; }
+        pos_ok = true;
+    }
+    
     console.log("Digging @ ", cc,rr, "room of ", cols,rows);
     t = 0;
+    /*
     while (cc+cols > maxcol-2) {
         console.log("Out of column bound");
         cc = cc-1;
@@ -141,6 +152,7 @@ function dig_room(cc, rr, variance) {
             return false;
         }
     }
+    */
     console.log("Digging @ ", cc,rr, "room of ", cols,rows);
     while(r<rows) {
         while(c<cols) {
@@ -171,19 +183,12 @@ function areas_dig(rooms) {
     var row = 0;
     var avg_size = 16;
     var ret;
-    var horiz_areas = Math.ceil(rooms/2); // number of vertical and horizontal areas
-    var vert_areas = rooms - horiz_areas;
-    var hsize = Math.floor(maxcol / horiz_areas); // size of vertical and horizontal areas
-    var vsize = Math.floor(maxrow / vert_areas);
-    for(v=0; v<vert_areas; v++) {
-        for(h=0; h<horiz_areas; h++) {
-            col = rand_between(2, hsize) * (h+1);
-            row = rand_between(2, vsize) * (v+1);
-            ret = dig_room (col, row, 16 - avg_size);
-            avg_size = Math.floor((avg_size + ret[0]*ret[1]) / 2)
-            rooms = rooms - 1;
-            if (rooms == 0) return;
-        }
+    while (rooms > 0) {
+        col = rand_between(2, maxcol-7);
+        row = rand_between(2 + rooms, maxrow-7);
+        ret = dig_room (col, row, 16 - avg_size);
+        avg_size = Math.floor((avg_size + ret[0]*ret[1]) / 2)
+        rooms = rooms - 1;
     }
 }
 
@@ -196,7 +201,7 @@ function areas_dig(rooms) {
     
     
 <body>
-<input type=button onclick="areas_dig(7)" value="start">
+<input type=button onclick="areas_dig(4)" value="start">
 
 <div class='dungeon_map' id='THE-MAP'>
 
