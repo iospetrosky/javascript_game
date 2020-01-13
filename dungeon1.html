@@ -7,8 +7,10 @@
 <link href="resources/dungeon_parts.css" rel="stylesheet" type="text/css" />
 <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
 <script type="text/javascript">
-var maxrow = 18;
-var maxcol = 24; // 14x10 e' la dimensione dell'area gioco per scratch
+var maxrow = 10;
+var maxcol = 14; // 14x10 e' la dimensione dell'area gioco per scratch
+var maxsize = 4;
+var room_list = new Array();
 
 function rand_between(min, max) {
     // min and max inclusive
@@ -25,7 +27,7 @@ $(document).ready(function () {
         newrow.css("width",grid_width);
         $("#THE-MAP").append(newrow);
         for (k=1;k<=maxcol;k++) {
-            var newcell = $("<div class='cell_rock dng_cell' id='C-" + k.toString() + "-R-" + j.toString() + "'></div>");
+            var newcell = $("<div class='cell_rock dng_cell' id='C-" + k.toString() + "-R-" + j.toString() + "'>"+  k.toString() + "-" + j.toString()   +"</div>");
             newrow.append(newcell);
         }
     }
@@ -34,7 +36,7 @@ $(document).ready(function () {
 function get_terrain_id (id) {
     var classList;
     try { // just in case the id is not existent
-        $(id).attr('class').split(/\s+/);
+        classList = $(id).attr('class').split(/\s+/);
         for (var i = 0; i < classList.length; i++) {
             if (classList[i].substring(0,4) === 'cell') {
                 return classList[i];
@@ -119,75 +121,73 @@ function dig(c, r) {
     $(id).addClass('cell_floor');
 }
 
-function dig_room(cc, rr, variance) {
+function dig_room(variance) {
     // variance is relative to the average size
-    var cols = rand_between(2,4) + Math.floor(variance/2);
-    var rows = rand_between(2,4) + Math.floor(variance/2);
+    var cc = rand_between(2, maxcol - maxsize-1); // the first corner of the room
+    var rr = rand_between(2, maxrow - maxsize-1);
+    var cols = rand_between(2,maxsize) + Math.floor(variance/2); // size of the room
+    var rows = rand_between(2,maxsize) + Math.floor(variance/2);
     var r = 0;
     var c = 0;
+    var new_room = new Object();
     if (cols < 2) {cols = 2}
     if (rows < 2) {rows = 2}
     // try not to overlap
     var pos_ok = false;
-    while (!pos_ok) {
-        if (is_room_colrow(cc, rr)) { cc++; continue; }
-        if (is_room_colrow(cc+cols, rr+rows)) { cc++; continue; }
+    var attempts = 0;
+    while ((!pos_ok) && (attempts < 100)) {
         pos_ok = true;
-    }
+        for (cc_test=cc; cc_test<=cc+cols; cc_test++) {
+            for (rr_test=rr; rr_test<=rr+rows; rr_test++) {
+                if (get_terrain_colrow(cc_test, rr_test) == 'cell_floor') {
+                    pos_ok = false;
+                    break;
+                }
+            }
+            if (!pos_ok) break;
+        }
     
-    console.log("Digging @ ", cc,rr, "room of ", cols,rows);
-    t = 0;
-    /*
-    while (cc+cols > maxcol-2) {
-        console.log("Out of column bound");
-        cc = cc-1;
-        if ((t++) > 10) {
-            return false;
+    
+        if (!pos_ok) { 
+            // re-randomize room    
+            cc = rand_between(2, maxcol - 7);
+            rr = rand_between(2, maxrow - 7);
+            attempts++;
+            console.log("Retry");
+        } else {
+            console.log("Digging @ ", cc,rr, "room of ", cols,rows);
+            t = 0;
+            while(r<rows) {
+                while(c<cols) {
+                    dig(c+cc,r+rr);
+                    c++;
+                }
+                r++;
+                c = 0;
+            }
+            new_room.col = cc;
+            new_room.row = rr;
+            new_room.cols = cols;
+            new_room.rows = rows;
+            room_list.push(new_room);
+            return [cols, rows];
         }
     }
-    while (rr+rows > maxrow-2) {
-        console.log("Out of row bound");
-        rr = rr-1;
-        if ((t++) > 10) {
-            return false;
-        }
-    }
-    */
-    console.log("Digging @ ", cc,rr, "room of ", cols,rows);
-    while(r<rows) {
-        while(c<cols) {
-            dig(c+cc,r+rr);
-            c++;
-        }
-        r++;
-        c = 0;
-    }
-    return [cols, rows];
+    console.log("Giving up");
+    return [0,0]; 
 }
 
-function random_dig() {
-    // randomly dig ignoring any logic except the presence of a room
-    var col = rand_between(2, maxcol-6);
-    var row = rand_between(2,maxrow-6);
-    if (get_terrain_colrow(col, row) == 'cell_rock') {
-        dig_room(col,row,0);
-    } else {
-        console.log("Can't dig @ ", col, row);
-    }
-}
 
 function areas_dig(rooms) {
     //try to dig the indicated number of rooms distributing 
     //around the available space
-    var col = 0;
-    var row = 0;
-    var avg_size = 16;
+    var avg_size = maxsize*maxsize;
     var ret;
     while (rooms > 0) {
-        col = rand_between(2, maxcol-7);
-        row = rand_between(2 + rooms, maxrow-7);
-        ret = dig_room (col, row, 16 - avg_size);
-        avg_size = Math.floor((avg_size + ret[0]*ret[1]) / 2)
+        ret = dig_room (maxsize*maxsize - avg_size);
+        if (ret[0] != 0) {
+            avg_size = Math.floor((avg_size + ret[0]*ret[1]) / 2)
+        } // otherwise the digging failed but we go on with a new room
         rooms = rooms - 1;
     }
 }
@@ -201,7 +201,7 @@ function areas_dig(rooms) {
     
     
 <body>
-<input type=button onclick="areas_dig(4)" value="start">
+<input type=button onclick="areas_dig(3)" value="start">
 
 <div class='dungeon_map' id='THE-MAP'>
 

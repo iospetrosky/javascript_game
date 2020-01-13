@@ -20,11 +20,13 @@
 }
 
 .cell_rock {
-    background-image: url("rock.png");
+    _background-image: url("rock.png");
+    font-size: 8px;
 }
 
 .cell_floor {
     background-image: url("floor.png");
+    font-size: 8px;
 }
 
 .dng_cell:first-child {
