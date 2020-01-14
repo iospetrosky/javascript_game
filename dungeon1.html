@@ -108,7 +108,7 @@ function is_room_colrow(c, r) {
     
     
 }
-
+var rname = ""; // for debug only room name
 function dig(c, r) {
     var id = "#C-" + c + "-R-" + r;
     //console.log(id);
@@ -116,79 +116,75 @@ function dig(c, r) {
     $.each(classList, function(index, item) {
         if (item.substring(0,4) === 'cell') {
             $(id).removeClass(item);
+            $(id).html("RM:" + rname);
         }
     });    
     $(id).addClass('cell_floor');
 }
 
-function dig_room(variance) {
-    // variance is relative to the average size
-    var cc = rand_between(2, maxcol - maxsize-1); // the first corner of the room
-    var rr = rand_between(2, maxrow - maxsize-1);
-    var cols = rand_between(2,maxsize) + Math.floor(variance/2); // size of the room
-    var rows = rand_between(2,maxsize) + Math.floor(variance/2);
-    var r = 0;
-    var c = 0;
-    var new_room = new Object();
-    if (cols < 2) {cols = 2}
-    if (rows < 2) {rows = 2}
-    // try not to overlap
-    var pos_ok = false;
-    var attempts = 0;
-    while ((!pos_ok) && (attempts < 100)) {
-        pos_ok = true;
-        for (cc_test=cc; cc_test<=cc+cols; cc_test++) {
-            for (rr_test=rr; rr_test<=rr+rows; rr_test++) {
-                if (get_terrain_colrow(cc_test, rr_test) == 'cell_floor') {
-                    pos_ok = false;
-                    break;
-                }
-            }
-            if (!pos_ok) break;
-        }
-    
-    
-        if (!pos_ok) { 
-            // re-randomize room    
-            cc = rand_between(2, maxcol - 7);
-            rr = rand_between(2, maxrow - 7);
-            attempts++;
-            console.log("Retry");
-        } else {
-            console.log("Digging @ ", cc,rr, "room of ", cols,rows);
-            t = 0;
-            while(r<rows) {
-                while(c<cols) {
-                    dig(c+cc,r+rr);
-                    c++;
-                }
-                r++;
-                c = 0;
-            }
-            new_room.col = cc;
-            new_room.row = rr;
-            new_room.cols = cols;
-            new_room.rows = rows;
-            room_list.push(new_room);
-            return [cols, rows];
+function dig_room(cc, rr, wd, hg) {
+    for (var c = cc; c <= cc+wd; c++ ) {
+        for (var r = rr; r <= rr+hg; r++) {
+           dig(c,r);
         }
     }
-    console.log("Giving up");
-    return [0,0]; 
+    var new_room = new Object();
+    new_room.col = cc;
+    new_room.row = rr;
+    new_room.cols = wd;
+    new_room.rows = hg;
+    room_list.push(new_room);
+    return [wd, hg]; //??? really ???
+    //return [0,0]; 
 }
 
+function test_room(cc, rr, wd, hg) {
+    // initial check ... not on/out the borders
+    if (cc+wd >= maxcol) return false;
+    if (rr+hg >= maxrow) return false;
+    // checks if the area is empty
+    for (var c = cc; c <= cc+wd; c++ ) {
+        for (var r = rr; r <= rr+hg; r++) {
+            if (get_terrain_colrow(c,r)=='cell_floor') return false;
+        }
+    }
+    // check that there is a free border of rock around
+    // row above/below
+    for (var c = cc-1; c <= cc+wd+1; c++) {
+        if (get_terrain_colrow(c,rr-1)=='cell_floor') return false;
+        if (get_terrain_colrow(c,rr+hg+1)=='cell_floor') return false;
+    }
+    // column left/right (corners already checked above)
+    for (var r = rr; r <= rr+hg; r++) {
+        if (get_terrain_colrow(cc-1,r)=='cell_floor') return false;
+        if (get_terrain_colrow(cc+wd+11,r)=='cell_floor') return false;
+    }
+    return true;
+}
 
 function areas_dig(rooms) {
     //try to dig the indicated number of rooms distributing 
     //around the available space
     var avg_size = maxsize*maxsize;
-    var ret;
-    while (rooms > 0) {
-        ret = dig_room (maxsize*maxsize - avg_size);
+    var ret, col, row, wdt, hgt;
+    var attempts = 0;
+    for (var digrooms=0; digrooms<rooms; digrooms++) {
+        rname = digrooms; //maxsize*maxsize - avg_size,
+        do {
+            col = rand_between(2, maxcol - maxsize);
+            row = rand_between(2, maxrow - maxsize);
+            wdt = rand_between(2, Math.floor(Math.sqrt(avg_size)));
+            hgt = rand_between(2, Math.floor(Math.sqrt(avg_size)));
+            attempts++;
+            if (attempts > 100) {
+                console.log("Too many attempts");
+                return;
+            }
+        } while(!test_room(col, row, wdt, hgt));
+        ret = dig_room (col, row, wdt, hgt);
         if (ret[0] != 0) {
-            avg_size = Math.floor((avg_size + ret[0]*ret[1]) / 2)
+            avg_size = ((avg_size + ret[0]*ret[1]) / 2); // this is the average area
         } // otherwise the digging failed but we go on with a new room
-        rooms = rooms - 1;
     }
 }
 
@@ -201,7 +197,7 @@ function areas_dig(rooms) {
     
     
 <body>
-<input type=button onclick="areas_dig(3)" value="start">
+<input type=button onclick="areas_dig(4)" value="start">
 
 <div class='dungeon_map' id='THE-MAP'>
 

@@ -20,7 +20,7 @@
 }
 
 .cell_rock {
-    _background-image: url("rock.png");
+    background-image: url("rock.png");
     font-size: 8px;
 }
 
