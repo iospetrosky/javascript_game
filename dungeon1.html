@@ -122,7 +122,7 @@ function dig(c, r) {
     $(id).addClass('cell_floor');
 }
 
-function wall(c,r,area) {
+function wall(c,r) {
     var id = make_cell_id(c,r);
     //console.log(id);
     var classList = $(id).attr('class').split(/\s+/);
@@ -132,11 +132,7 @@ function wall(c,r,area) {
         }
     });    
     $(id).html("WL:" + rname);
-    switch(area){
-        case 'C': $(id).addClass('cell_wall_corner'); break;
-        case 'V': $(id).addClass('cell_wall_vertical'); break;
-        case 'H': $(id).addClass('cell_wall_horizontal'); break;
-    }
+    $(id).addClass('cell_wall'); 
 }
 
 function dig_room(cc, rr, wd, hg) {
@@ -153,19 +149,19 @@ function dig_room(cc, rr, wd, hg) {
     room_list.push(new_room);
     // draw the wall around the room
     // corners
-    wall(cc-1,rr-1,'C');
-    wall(cc-1,rr+hg,'C');
-    wall(cc+wd,rr-1,'C');
-    wall(cc+wd,rr+hg,'C');
+    wall(cc-1,rr-1);
+    wall(cc-1,rr+hg);
+    wall(cc+wd,rr-1);
+    wall(cc+wd,rr+hg);
     // rows top and bottom
     for (var c = cc; c < cc+wd; c++) {
-        wall(c,rr-1,'H'); 
-        wall(c,rr+hg,'H');
+        wall(c,rr-1); 
+        wall(c,rr+hg);
     }
     //columns left and right
     for (var r = rr; r < rr+hg; r++) {
-        wall(cc-1,r,'V');
-        wall(cc+wd,r,'V');
+        wall(cc-1,r);
+        wall(cc+wd,r);
     }
 
     return [wd, hg]; //??? really ???
