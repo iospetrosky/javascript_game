@@ -9,7 +9,7 @@
 <script type="text/javascript">
 var maxrow = 10;
 var maxcol = 14; // 14x10 e' la dimensione dell'area gioco per scratch
-var maxsize = 4;
+var maxsize = 5;
 var room_list = new Array();
 
 function rand_between(min, max) {
@@ -116,15 +116,32 @@ function dig(c, r) {
     $.each(classList, function(index, item) {
         if (item.substring(0,4) === 'cell') {
             $(id).removeClass(item);
-            $(id).html("RM:" + rname);
         }
     });    
+    $(id).html("RM:" + rname);
     $(id).addClass('cell_floor');
 }
 
+function wall(c,r,area) {
+    var id = make_cell_id(c,r);
+    //console.log(id);
+    var classList = $(id).attr('class').split(/\s+/);
+    $.each(classList, function(index, item) {
+        if (item.substring(0,4) === 'cell') {
+            $(id).removeClass(item);
+        }
+    });    
+    $(id).html("WL:" + rname);
+    switch(area){
+        case 'C': $(id).addClass('cell_wall_corner'); break;
+        case 'V': $(id).addClass('cell_wall_vertical'); break;
+        case 'H': $(id).addClass('cell_wall_horizontal'); break;
+    }
+}
+
 function dig_room(cc, rr, wd, hg) {
-    for (var c = cc; c <= cc+wd; c++ ) {
-        for (var r = rr; r <= rr+hg; r++) {
+    for (var c = cc; c < cc+wd; c++ ) {
+        for (var r = rr; r < rr+hg; r++) {
            dig(c,r);
         }
     }
@@ -134,31 +151,50 @@ function dig_room(cc, rr, wd, hg) {
     new_room.cols = wd;
     new_room.rows = hg;
     room_list.push(new_room);
+    // draw the wall around the room
+    // corners
+    wall(cc-1,rr-1,'C');
+    wall(cc-1,rr+hg,'C');
+    wall(cc+wd,rr-1,'C');
+    wall(cc+wd,rr+hg,'C');
+    // rows top and bottom
+    for (var c = cc; c < cc+wd; c++) {
+        wall(c,rr-1,'H'); 
+        wall(c,rr+hg,'H');
+    }
+    //columns left and right
+    for (var r = rr; r < rr+hg; r++) {
+        wall(cc-1,r,'V');
+        wall(cc+wd,r,'V');
+    }
+
     return [wd, hg]; //??? really ???
     //return [0,0]; 
 }
 
 function test_room(cc, rr, wd, hg) {
     // initial check ... not on/out the borders
+    console.log("Test room. Col: " + cc + "  Row: " + rr + "  Wid: " + wd + "  Hht: " + hg)
     if (cc+wd >= maxcol) return false;
     if (rr+hg >= maxrow) return false;
     // checks if the area is empty
-    for (var c = cc; c <= cc+wd; c++ ) {
-        for (var r = rr; r <= rr+hg; r++) {
+    for (var c = cc; c < cc+wd; c++ ) {
+        for (var r = rr; r < rr+hg; r++) {
             if (get_terrain_colrow(c,r)=='cell_floor') return false;
         }
     }
     // check that there is a free border of rock around
     // row above/below
-    for (var c = cc-1; c <= cc+wd+1; c++) {
+    for (var c = cc-1; c <= cc+wd; c++) {
         if (get_terrain_colrow(c,rr-1)=='cell_floor') return false;
-        if (get_terrain_colrow(c,rr+hg+1)=='cell_floor') return false;
+        if (get_terrain_colrow(c,rr+hg)=='cell_floor') return false;
     }
     // column left/right (corners already checked above)
-    for (var r = rr; r <= rr+hg; r++) {
+    for (var r = rr; r < rr+hg; r++) {
         if (get_terrain_colrow(cc-1,r)=='cell_floor') return false;
-        if (get_terrain_colrow(cc+wd+11,r)=='cell_floor') return false;
+        if (get_terrain_colrow(cc+wd,r)=='cell_floor') return false;
     }
+    console.log("Room is diggable")
     return true;
 }
 
@@ -168,15 +204,34 @@ function areas_dig(rooms) {
     var avg_size = maxsize*maxsize;
     var ret, col, row, wdt, hgt;
     var attempts = 0;
+    var sel_method = "RND"; // selection method for a free area
     for (var digrooms=0; digrooms<rooms; digrooms++) {
         rname = digrooms; //maxsize*maxsize - avg_size,
         do {
-            col = rand_between(2, maxcol - maxsize);
-            row = rand_between(2, maxrow - maxsize);
-            wdt = rand_between(2, Math.floor(Math.sqrt(avg_size)));
-            hgt = rand_between(2, Math.floor(Math.sqrt(avg_size)));
+            if (sel_method == 'RND') {
+                col = rand_between(2, maxcol - maxsize);
+                row = rand_between(2, maxrow - maxsize);
+                wdt = rand_between(2, Math.floor(Math.sqrt(avg_size)));
+                hgt = rand_between(2, Math.floor(Math.sqrt(avg_size)));
+            } else {
+                col++;
+                if (col > maxcol - 2) {
+                    col = 2;
+                    row++;
+                    if (row > maxrow - 2) {
+                        console.log("Reached the end of the map");
+                        return;
+                    }
+                }
+            }
             attempts++;
-            if (attempts > 100) {
+            if ((attempts > 300) && (sel_method == 'RND')) {
+                console.log("Switching to iterative method");
+                col = 2;
+                row = 2;
+                sel_method = 'ITER';
+            }
+            if (attempts > 1000) {
                 console.log("Too many attempts");
                 return;
             }
@@ -186,6 +241,7 @@ function areas_dig(rooms) {
             avg_size = ((avg_size + ret[0]*ret[1]) / 2); // this is the average area
         } // otherwise the digging failed but we go on with a new room
     }
+    console.log("Solved after " + attempts + " attempts");
 }
 
 // mole algorithm saved in old versions, see gitHub
@@ -197,7 +253,7 @@ function areas_dig(rooms) {
     
     
 <body>
-<input type=button onclick="areas_dig(4)" value="start">
+<input type=button onclick="areas_dig(5)" value="start">
 
 <div class='dungeon_map' id='THE-MAP'>
 
