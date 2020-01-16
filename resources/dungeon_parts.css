@@ -21,16 +21,16 @@
 }
 
 .cell_rock {
-    background-image: url("rock.png");
+    _background-image: url("rock.png");
 }
 
 .cell_floor {
-    background-image: url("floor.png");
+    _background-image: url("floor.png");
     background-color: yellow;
 }
 
 .cell_wall {
-    background-image: url("wall.png");
+    _background-image: url("wall.png");
     background-color: brown;
 }
 

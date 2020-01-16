@@ -7,8 +7,8 @@
 <link href="resources/dungeon_parts.css" rel="stylesheet" type="text/css" />
 <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
 <script type="text/javascript">
-var maxrow = 10;
-var maxcol = 14; // 14x10 e' la dimensione dell'area gioco per scratch
+var maxrow = Math.floor(10 * 1.3);
+var maxcol = Math.floor(14 * 1.3); // 14x10 e' la dimensione dell'area gioco per scratch
 var maxsize = 5;
 var room_list = new Array();
 
@@ -62,52 +62,6 @@ function are_all_the_same(t1, t2, t3, t4) {
     return false;
 }
 
-function is_corridor_colrow(c, r) {
-    let grid = [make_cell_id(c-1,r-1),make_cell_id(c,r-1),make_cell_id(c+1,r-1), // 0 1 2
-                make_cell_id(c-1,r),make_cell_id(c,r),make_cell_id(c+1,r), // 3 4 5
-                make_cell_id(c-1,r+1),make_cell_id(c,r+1),make_cell_id(c+1,r+1)]; // 6 7 8
-    
-    for (var i = 0; i < grid.length; i++) {
-        grid[i] = get_terrain_id(grid[i]);
-    }
-    if (grid[4] == 'cell_floor') { // center cell
-        /* if a square of 4 tiles in the matrix contain the 
-           same terrain of the central [4] then it's NOT a corridor */
-        if (are_all_the_same(grid[4], grid[0], grid[1], grid[3])) return false;
-        if (are_all_the_same(grid[4], grid[1], grid[2], grid[5])) return false;
-        if (are_all_the_same(grid[4], grid[3], grid[6], grid[7])) return false;
-        if (are_all_the_same(grid[4], grid[5], grid[7], grid[8])) return false;
-        // else
-        return true;
-    } 
-    //else 
-    return false;
-}
-
-function is_room_colrow(c, r) {
-    // checks if the cell is part of a room
-    let grid = [make_cell_id(c-1,r-1),make_cell_id(c,r-1),make_cell_id(c+1,r-1), // 0 1 2
-                make_cell_id(c-1,r),make_cell_id(c,r),make_cell_id(c+1,r), // 3 4 5
-                make_cell_id(c-1,r+1),make_cell_id(c,r+1),make_cell_id(c+1,r+1)]; // 6 7 8
-    
-    for (var i = 0; i < grid.length; i++) {
-        grid[i] = get_terrain_id(grid[i]);
-    }
-    if (grid[4] == 'cell_floor') { // center cell
-        /* if a square of 4 tiles in the matrix contain the 
-           same terrain of the central [4] then it IS a room */
-        if (are_all_the_same(grid[4], grid[0], grid[1], grid[3])) return true;
-        if (are_all_the_same(grid[4], grid[1], grid[2], grid[5])) return true;
-        if (are_all_the_same(grid[4], grid[3], grid[6], grid[7])) return true;
-        if (are_all_the_same(grid[4], grid[5], grid[7], grid[8])) return true;
-        // else
-        return false;
-    } 
-    //else 
-    return false;
-    
-    
-}
 var rname = ""; // for debug only room name
 function dig(c, r) {
     var id = "#C-" + c + "-R-" + r;
@@ -147,6 +101,7 @@ function dig_room(cc, rr, wd, hg) {
     new_room.cols = wd;
     new_room.rows = hg;
     room_list.push(new_room);
+    
     // draw the wall around the room
     // corners
     wall(cc-1,rr-1);
@@ -163,8 +118,8 @@ function dig_room(cc, rr, wd, hg) {
         wall(cc-1,r);
         wall(cc+wd,r);
     }
-
-    return [wd, hg]; //??? really ???
+    
+    return [wd, hg]; //used to calculate the average size
     //return [0,0]; 
 }
 
@@ -216,6 +171,7 @@ function areas_dig(rooms) {
                     row++;
                     if (row > maxrow - 2) {
                         console.log("Reached the end of the map");
+                        dig_corridors();
                         return;
                     }
                 }
@@ -238,10 +194,47 @@ function areas_dig(rooms) {
         } // otherwise the digging failed but we go on with a new room
     }
     console.log("Solved after " + attempts + " attempts");
+    dig_corridors();
 }
 
-// mole algorithm saved in old versions, see gitHub
+function dig_corridors() {
+    function starting_cell(room) {
+        var rnd_cell = rand_between(0, room.cols * room.rows - 1);
+        return [rnd_cell % room.cols + room.col, 
+                Math.floor(rnd_cell / room.cols) + room.row];
+    }
 
+    var r1, r2;
+    for (var j=0; j < room_list.length -1; j++) {
+        r1 = room_list[j];
+        r2 = room_list[j+1];
+        rname = j;
+        // determine the starting cell within the room
+        var row1, row2, col1, col2;
+        [col1, row1] = starting_cell(r1);
+        [col2, row2] = starting_cell(r2);
+        // now dig between r1 and r2
+        var x, y;
+        if (row1 <= row2) {
+            for (y=row1; y<=row2; y++) {
+                dig(col1, y);
+            }
+        } else {
+            for (y=row2; y<=row1; y++) {
+                dig(col1, y);
+            }
+        }
+        if (col1 <= col2) { 
+            for (x=col1; x<=col2; x++) {
+                dig(x,row2);
+            }
+        } else {
+            for (x=col2; x<=col1; x++) {
+                dig(x,row2);
+            }
+        }
+    }
+}
 </script>
 
 </head>
@@ -249,7 +242,7 @@ function areas_dig(rooms) {
     
     
 <body>
-<input type=button onclick="areas_dig(5)" value="start">
+<input type=button onclick="areas_dig(4)" value="start">
 
 <div class='dungeon_map' id='THE-MAP'>
 
