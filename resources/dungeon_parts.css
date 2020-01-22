@@ -25,12 +25,142 @@
 }
 
 .cell_floor {
-    _background-image: url("floor.png");
+    background-image: url("floor.png");
     background-color: yellow;
+}
+.cell_wall_T_right {
+    background-image: url("z_wall_t.png");
+    background-color: brown;    
+}
+.cell_wall_T_left {
+    background-image: url("z_wall_t.png");
+    transform: rotate(180deg);
+    background-color: brown;    
+}
+.cell_wall_T_up {
+    background-image: url("z_wall_t.png");
+    transform: rotate(270deg);
+    background-color: brown;    
+}
+.cell_wall_T_down {
+    background-image: url("z_wall_t.png");
+    transform: rotate(90deg);
+    background-color: brown;    
+}
+
+.cell_wall_intcorn_T_br_right {
+    background-image: url("z_corn_int_t.png");
+    background-color: brown;    
+}
+.cell_wall_intcorn_T_br_left {
+    background-image: url("z_corn_int_t.png");
+    transform: scaleX(-1);
+    background-color: brown;    
+}
+.cell_wall_intcorn_T_br_down {
+    background-image: url("z_corn_int_t.png");
+    transform: rotate(270deg) scaleX(-1);
+    background-color: brown;    
+}
+.cell_wall_intcorn_T_bl_down {
+    background-image: url("z_corn_int_t.png");
+    transform: rotate(90deg);
+    background-color: brown;    
+}
+.cell_wall_intcorn_T_bl_left {
+    background-image: url("z_corn_int_t.png");
+    transform: scaleX(-1);
+    background-color: brown;    
+}
+.cell_wall_intcorn_T_tl_left {
+    background-image: url("z_corn_int_t.png");
+    transform: rotate(180deg);
+    background-color: brown;    
+}
+.cell_wall_intcorn_T_tl_up {
+    background-image: url("z_corn_int_t.png");
+    transform: rotate(90deg) scaleX(-1);
+    background-color: brown;    
+}
+.cell_wall_intcorn_T_tr_right {
+    background-image: url("z_corn_int_t.png");
+    transform: rotate(180deg) scaleX(-1);
+    background-color: brown;    
+}
+.cell_wall_intcorn_T_tr_up {
+    background-image: url("z_corn_int_t.png");
+    transform: rotate(270deg);
+    background-color: brown;    
+}
+.cell_wall_intcorn_br {
+    background-image: url("z_corn_int.png");
+    background-color: brown;
+}
+.cell_wall_intcorn_bl {
+    background-image: url("z_corn_int.png");
+    transform: rotate(90deg);
+    background-color: brown;
+}
+.cell_wall_intcorn_tl {
+    background-image: url("z_corn_int.png");
+    transform: rotate(180deg);
+    background-color: brown;
+}
+.cell_wall_intcorn_tr {
+    background-image: url("z_corn_int.png");
+    transform: rotate(270deg);
+    background-color: brown;
+}
+.cell_wall_mid_v {
+    background-image: url("z_midwall.png");
+    background-color: brown;
+}
+.cell_wall_mid_h {
+    background-image: url("z_midwall.png");
+    background-color: brown;
+    transform: rotate(90deg);
+}
+.cell_wall_tl {
+    background-image: url("z_corner.png");
+    background-color: brown;
+}
+.cell_wall_bl {
+    background-image: url("z_corner.png");
+    transform: rotate(270deg);
+    background-color: brown;
+}
+.cell_wall_tr {
+    background-image: url("z_corner.png");
+    transform: rotate(90deg);
+    background-color: brown;
+}
+.cell_wall_br {
+    background-image: url("z_corner.png");
+    transform: rotate(180deg);
+    background-color: brown;
+}
+.cell_wall_left {
+    background-image: url("z_wall.png");
+    background-color: brown;
+}
+.cell_wall_top {
+    background-image: url("z_wall.png");
+    transform: rotate(90deg);
+    background-color: brown;
+}
+.cell_wall_right {
+    background-image: url("z_wall.png");
+    transform: rotate(180deg);
+    background-color: brown;
+}
+.cell_wall_bottom {
+    background-image: url("z_wall.png");
+    transform: rotate(270deg);
+    background-color: brown;
 }
 
 .cell_wall {
-    _background-image: url("wall.png");
+    background-image: url("wall.png");
     background-color: brown;
 }
 

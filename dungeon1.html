@@ -2,19 +2,25 @@
 <html lang="en"> 
 <head> 
 <meta charset="UTF-8" />
-<title>Dungeon maker</title>
+<title>DM</title>
 <link href="resources/main.css" rel="stylesheet" type="text/css" />
 <link href="resources/dungeon_parts.css" rel="stylesheet" type="text/css" />
 <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
 <script type="text/javascript">
-var maxrow = Math.floor(10 * 1);
-var maxcol = Math.floor(14 * 1); // 14x10 e' la dimensione dell'area gioco per scratch
+var maxrow = Math.floor(10 * 2);
+var maxcol = Math.floor(14 * 2); // 14x10 e' la dimensione dell'area gioco per scratch
 var maxsize = 5;
 var room_list = new Array();
+// seed 7/8 richieded il disegno di un tassello ad angolo
+var seed = 8;
+const prgn = s => (typeof s!=='undefined'&&((l=s%2147483647)<=0&&(l+=2147483646)),((l=l*16807%2147483647)-1)/2147483646);
+console.log(prgn(seed));
 
 function rand_between(min, max) {
     // min and max inclusive
-    return Math.floor(Math.random() * (max-min+1)) + min;
+    //return Math.floor(Math.random() * (max-min+1)) + min;
+    var x= Math.floor(prgn() * (max-min+1)) + min;
+    return x;
 }
 
 $(document).ready(function () {
@@ -76,7 +82,7 @@ function dig(c, r) {
     $(id).addClass('cell_floor');
 }
 
-function wall(c,r) {
+function wall(c,r,wtype='cell_wall') {
     var id = make_cell_id(c,r);
     //console.log(id);
     var classList = $(id).attr('class').split(/\s+/);
@@ -86,7 +92,7 @@ function wall(c,r) {
         }
     });    
     $(id).html("WL:" + rname);
-    $(id).addClass('cell_wall'); 
+    $(id).addClass(wtype); 
 }
 
 function dig_room(cc, rr, wd, hg) {
@@ -221,23 +227,129 @@ function dig_corridors() {
 
 function wallify() {
     function test_surr_cells(c,r) {
-        if (get_terrain_colrow(c-1,r-1)=='cell_floor') return true;
-        if (get_terrain_colrow(c,r-1)=='cell_floor') return true;
-        if (get_terrain_colrow(c+1,r-1)=='cell_floor') return true;
-        if (get_terrain_colrow(c-1,r)=='cell_floor') return true;
-        if (get_terrain_colrow(c+1,r)=='cell_floor') return true;
-        if (get_terrain_colrow(c-1,r+1)=='cell_floor') return true;
-        if (get_terrain_colrow(c,r+1)=='cell_floor') return true;
-        if (get_terrain_colrow(c+1,r+1)=='cell_floor') return true;
-        return false;
+        // assigning a BIT to the cells around so I know the combination
+        var bits = 0;
+        
+        
+        if (get_terrain_colrow(c-1,r-1)=='cell_floor') bits+=1;
+        if (get_terrain_colrow(c,r-1)=='cell_floor') bits+=2;
+        if (get_terrain_colrow(c+1,r-1)=='cell_floor') bits+=4;
+        if (get_terrain_colrow(c-1,r)=='cell_floor') bits+=8;
+        if (get_terrain_colrow(c+1,r)=='cell_floor') bits+=16;
+        if (get_terrain_colrow(c-1,r+1)=='cell_floor') bits+=32;
+        if (get_terrain_colrow(c,r+1)=='cell_floor') bits+=64;
+        if (get_terrain_colrow(c+1,r+1)=='cell_floor') bits+=128;
+        return bits;
     }
-
-// put a wall tile where appropriate
+    
+    function wall_type(c,r,pattern) {
+        // solve some of the cases with a bit of logic
+        
+        console.log (pattern);
+        console.log (pattern | (8+16));
+        
+        if ((pattern | (8+16)) == pattern) {
+            wall(c,r,'cell_wall_mid_v');
+            return;
+        }
+        if ((pattern | (2+64)) == pattern) {
+            wall(c,r,'cell_wall_mid_h');
+            return;
+        }
+        
+    
+        switch(pattern) {
+            case 128: wall(c,r,'cell_wall_tl'); break;
+            case 16: 
+            case 20:
+            case 148: 
+            case 144: wall(c,r,'cell_wall_left'); break;
+            case 4: wall(c,r,'cell_wall_bl'); break;
+            case 2:
+            case 6:
+            case 3:
+            case 7: wall(c,r,'cell_wall_bottom'); break;
+            case 1: wall(c,r,'cell_wall_br'); break;
+            case 32: wall(c,r,'cell_wall_tr'); break;
+            case 9:
+            case 40:
+            case 41:
+            case 8: wall(c,r,'cell_wall_right'); break;
+            case 64:
+            case 96:
+            case 192:
+            case 224: wall(c,r,'cell_wall_top'); break;
+            /*
+            case (8+32+64+128+16): 
+            case (8+32+64+128+16+4): 
+            case (8+1+2+4+16): 
+            case (1+8+4+16): 
+            case (1+8+32+4+16+128+2): 
+            case (1+8+16+128):
+            case (1+8+32+64+128+16):
+            case (1+4+8+16+32+64+128):
+            case (8+32+4+16+128):
+            case (1+8+32+16+4):
+            case (1+8+32+4+16+128): wall(c,r,'cell_wall_mid_v'); break;
+            case (2+4+16+128+64): 
+            case (2+1+8+32+64):
+            case (1+2+4+32+64+128): 
+            case (1+2+4+16+128+64+32): 
+            case (1+2+4+16+128+64): 
+            case (2+4+16+128+64+32): 
+            case (1+2+4+16+128+64): 
+            case (2+4+32+64+128):
+            case (1+2+4+8+32+64):
+            case (1+2+4+32+64):
+            case (2+1+8+32+64+128):
+            case (4+2+1+8+32+64+128):
+            case (2+1+32+64):
+            case (1+2+32+64+128):
+            case (1+2+4+64+128): wall(c,r,'cell_wall_mid_h'); break;
+            */
+            case (1+8+32+64+128):
+            case (1+8+32+64):
+            case (8+32+64):
+            case (8+32+64+128): wall(c,r,'cell_wall_intcorn_bl'); break;
+            case (1+2+4+8):
+            case (2+1+8+32):
+            case (2+1+8):
+            case (32+8+1+2+4): wall(c,r,'cell_wall_intcorn_tl'); break;
+            case (1+2+4+16+128):
+            case (2+4+16+128):
+            case (2+4+16):
+            case (1+2+4+16): wall(c,r,'cell_wall_intcorn_tr'); break;
+            case (4+16+128+64+32):
+            case (16+128+64+32):
+            case (4+16+128+64):
+            case (16+128+64): wall(c,r,'cell_wall_intcorn_br'); break;
+            case (4+32+64+128):
+            case (4+128+64): wall(c,r,'cell_wall_intcorn_T_br_right'); break;
+            case (2+4+128):
+            case (1+2+4+128): wall(c,r,'cell_wall_intcorn_T_tr_right'); break;
+            case (16+128+32):
+            case (4+16+128+32): wall(c,r,'cell_wall_intcorn_T_br_down'); break;
+            case (4+16+128+1): wall(c,r,'cell_wall_intcorn_T_tr_up'); break;
+            case (8+32+128):
+            case (8+32+128+1): wall(c,r,'cell_wall_intcorn_T_bl_down'); break;
+            case (32+1+2+4):
+            case (32+1+2): wall(c,r,'cell_wall_intcorn_T_tl_left'); break;
+            case (1+8+32+4): wall(c,r,'cell_wall_intcorn_T_tl_up'); break;
+            case (1+32+64+128): wall(c,r,'cell_wall_intcorn_T_bl_left'); break;
+            case (1+32): wall(c,r,'cell_wall_T_left'); break;
+            case (1+4): wall(c,r,'cell_wall_T_up'); break;
+            case 256:
+            default: wall(c,r);
+        }
+    }
+    
+    var pattern;
+    // put a wall tile where appropriate
     for(var col=0; col<maxcol; col++) {
         for(var row=0; row<maxrow; row++) {
             if (get_terrain_colrow(col,row)=='cell_rock') {
                 // check if the surrounding cells are floors
-                if (test_surr_cells(col,row)) wall(col,row);
+                if ((pattern = test_surr_cells(col,row))!==0) wall_type(col,row,pattern);
             }
         }
     
@@ -250,7 +362,7 @@ function wallify() {
     
     
 <body>
-<input type=button onclick="areas_dig(4)" value="start">
+<input type=button onclick="areas_dig(8)" value="start">
 
 <div class='dungeon_map' id='THE-MAP'>
 
