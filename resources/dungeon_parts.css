@@ -111,6 +111,12 @@
     transform: rotate(270deg);
     background-color: brown;
 }
+.cell_wall_mid_corn_tr {
+    background-image: url("z_midwall_corn.png");
+    background-color: brown;
+}
+
+
 .cell_wall_mid_v {
     background-image: url("z_midwall.png");
     background-color: brown;

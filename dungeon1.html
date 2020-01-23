@@ -12,7 +12,7 @@ var maxcol = Math.floor(14 * 2); // 14x10 e' la dimensione dell'area gioco per s
 var maxsize = 5;
 var room_list = new Array();
 // seed 7/8 richieded il disegno di un tassello ad angolo
-var seed = 8;
+var seed = 7;
 const prgn = s => (typeof s!=='undefined'&&((l=s%2147483647)<=0&&(l+=2147483646)),((l=l*16807%2147483647)-1)/2147483646);
 console.log(prgn(seed));
 
@@ -245,32 +245,43 @@ function wallify() {
     function wall_type(c,r,pattern) {
         // solve some of the cases with a bit of logic
         
-        console.log (pattern);
-        console.log (pattern | (8+16));
-        
+        // Absolute conditions
         if ((pattern | (8+16)) == pattern) {
-            wall(c,r,'cell_wall_mid_v');
-            return;
+            wall(c,r,'cell_wall_mid_v'); return;
+        } else if ((pattern | (2+64)) == pattern) {
+            wall(c,r,'cell_wall_mid_h'); return;
+        } 
+        switch(pattern) {
+            case 128: wall(c,r,'cell_wall_tl'); return;
+            case 4: wall(c,r,'cell_wall_bl'); return;
+            case 1: wall(c,r,'cell_wall_br'); return;
+            case 32: wall(c,r,'cell_wall_tr'); return;
+            // the next 4 checks resolve the ambiguity with cell_wall_intcorn
+            case (1+2+4+16+128+32): wall(c,r,'cell_wall_mid_corn_tr'); return;
         }
-        if ((pattern | (2+64)) == pattern) {
-            wall(c,r,'cell_wall_mid_h');
-            return;
-        }
+        
+        
+        // Less absolute, ambiguities solved above
+        if ((pattern | (8+32+64)) == pattern) {
+            wall(c,r,'cell_wall_intcorn_bl'); return;
+        } else if ((pattern | (1+2+8)) == pattern) {
+            wall(c,r,'cell_wall_intcorn_tl'); return;
+        } else if ((pattern | (2+4+16)) == pattern) {
+            wall(c,r,'cell_wall_intcorn_tr'); return;
+        } else if ((pattern | (16+128+64)) == pattern) {
+            wall(c,r,'cell_wall_intcorn_br'); return;
+        } 
         
     
         switch(pattern) {
-            case 128: wall(c,r,'cell_wall_tl'); break;
             case 16: 
-            case 20:
-            case 148: 
-            case 144: wall(c,r,'cell_wall_left'); break;
-            case 4: wall(c,r,'cell_wall_bl'); break;
+            case (16+4):
+            case (16+4+128): 
+            case (16+128): wall(c,r,'cell_wall_left'); break;
             case 2:
             case 6:
             case 3:
             case 7: wall(c,r,'cell_wall_bottom'); break;
-            case 1: wall(c,r,'cell_wall_br'); break;
-            case 32: wall(c,r,'cell_wall_tr'); break;
             case 9:
             case 40:
             case 41:
@@ -279,50 +290,7 @@ function wallify() {
             case 96:
             case 192:
             case 224: wall(c,r,'cell_wall_top'); break;
-            /*
-            case (8+32+64+128+16): 
-            case (8+32+64+128+16+4): 
-            case (8+1+2+4+16): 
-            case (1+8+4+16): 
-            case (1+8+32+4+16+128+2): 
-            case (1+8+16+128):
-            case (1+8+32+64+128+16):
-            case (1+4+8+16+32+64+128):
-            case (8+32+4+16+128):
-            case (1+8+32+16+4):
-            case (1+8+32+4+16+128): wall(c,r,'cell_wall_mid_v'); break;
-            case (2+4+16+128+64): 
-            case (2+1+8+32+64):
-            case (1+2+4+32+64+128): 
-            case (1+2+4+16+128+64+32): 
-            case (1+2+4+16+128+64): 
-            case (2+4+16+128+64+32): 
-            case (1+2+4+16+128+64): 
-            case (2+4+32+64+128):
-            case (1+2+4+8+32+64):
-            case (1+2+4+32+64):
-            case (2+1+8+32+64+128):
-            case (4+2+1+8+32+64+128):
-            case (2+1+32+64):
-            case (1+2+32+64+128):
-            case (1+2+4+64+128): wall(c,r,'cell_wall_mid_h'); break;
-            */
-            case (1+8+32+64+128):
-            case (1+8+32+64):
-            case (8+32+64):
-            case (8+32+64+128): wall(c,r,'cell_wall_intcorn_bl'); break;
-            case (1+2+4+8):
-            case (2+1+8+32):
-            case (2+1+8):
-            case (32+8+1+2+4): wall(c,r,'cell_wall_intcorn_tl'); break;
-            case (1+2+4+16+128):
-            case (2+4+16+128):
-            case (2+4+16):
-            case (1+2+4+16): wall(c,r,'cell_wall_intcorn_tr'); break;
-            case (4+16+128+64+32):
-            case (16+128+64+32):
-            case (4+16+128+64):
-            case (16+128+64): wall(c,r,'cell_wall_intcorn_br'); break;
+
             case (4+32+64+128):
             case (4+128+64): wall(c,r,'cell_wall_intcorn_T_br_right'); break;
             case (2+4+128):
@@ -338,6 +306,7 @@ function wallify() {
             case (1+32+64+128): wall(c,r,'cell_wall_intcorn_T_bl_left'); break;
             case (1+32): wall(c,r,'cell_wall_T_left'); break;
             case (1+4): wall(c,r,'cell_wall_T_up'); break;
+            
             case 256:
             default: wall(c,r);
         }
